@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, getPrismaClient } from "@/lib/db";
 import { z } from "zod";
 
 const productSchema = z.object({
@@ -106,42 +106,76 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get("skip") || "0");
     const take = parseInt(searchParams.get("take") || "12");
 
-    try {
-      const where: any = {};
+    // Try to get prisma client if initial one is null
+    const client = !prisma ? await getPrismaClient() : prisma;
+    
+    if (client) {
+      try {
+        const where: any = {};
 
-      if (category) {
-        where.category = category;
+        if (category) {
+          where.category = category;
+        }
+
+        if (search) {
+          where.OR = [
+            { title: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ];
+        }
+
+        const [products, total] = await Promise.all([
+          client.product.findMany({
+            where,
+            skip,
+            take,
+            orderBy: { createdAt: "desc" },
+          }),
+          client.product.count({ where }),
+        ]);
+
+        return NextResponse.json({
+          products,
+          pagination: {
+            total,
+            skip,
+            take,
+            pages: Math.ceil(total / take),
+          },
+        });
+      } catch (dbError) {
+        // If database fails, return demo products
+        console.log("[v0] Database not ready, returning demo products");
+        let filtered = DEMO_PRODUCTS;
+
+        if (category && category !== "All") {
+          filtered = filtered.filter((p) => p.category === category);
+        }
+
+        if (search) {
+          filtered = filtered.filter(
+            (p) =>
+              p.title.toLowerCase().includes(search.toLowerCase()) ||
+              p.description.toLowerCase().includes(search.toLowerCase())
+          );
+        }
+
+        const total = filtered.length;
+        const paginatedProducts = filtered.slice(skip, skip + take);
+
+        return NextResponse.json({
+          products: paginatedProducts,
+          pagination: {
+            total,
+            skip,
+            take,
+            pages: Math.ceil(total / take),
+          },
+        });
       }
-
-      if (search) {
-        where.OR = [
-          { title: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ];
-      }
-
-      const [products, total] = await Promise.all([
-        prisma.product.findMany({
-          where,
-          skip,
-          take,
-          orderBy: { createdAt: "desc" },
-        }),
-        prisma.product.count({ where }),
-      ]);
-
-      return NextResponse.json({
-        products,
-        pagination: {
-          total,
-          skip,
-          take,
-          pages: Math.ceil(total / take),
-        },
-      });
-    } catch (dbError) {
-      // If database fails, return demo products
-      console.log("[v0] Database not ready, returning demo products");
+    } else {
+      // Database not available, return demo products
+      console.log("[v0] Database unavailable, returning demo products");
       let filtered = DEMO_PRODUCTS;
 
       if (category && category !== "All") {
@@ -182,6 +216,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // TODO: Add admin authentication check
+    const client = !prisma ? await getPrismaClient() : prisma;
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: "Database not available" },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
 
     const validation = productSchema.safeParse(body);
@@ -192,7 +235,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const product = await prisma.product.create({
+    const product = await client.product.create({
       data: validation.data as any,
     });
 

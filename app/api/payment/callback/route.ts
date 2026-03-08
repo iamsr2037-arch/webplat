@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, getPrismaClient } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
+    const client = !prisma ? await getPrismaClient() : prisma;
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 }
+      );
+    }
+
     const formData = await request.formData();
     const data: Record<string, string> = {};
 
@@ -25,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find order by transaction ID
-    const order = await prisma.order.findFirst({
+    const order = await client.order.findFirst({
       where: { ssLcommerzTransactionId: transactionId },
     });
 
@@ -39,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Update order status based on payment status
     if (status === "VALID" || status === "success") {
-      await prisma.order.update({
+      await client.order.update({
         where: { id: order.id },
         data: {
           paymentStatus: "COMPLETED",
@@ -58,7 +67,7 @@ export async function POST(request: NextRequest) {
         )
       );
     } else if (status === "FAILED" || status === "failed") {
-      await prisma.order.update({
+      await client.order.update({
         where: { id: order.id },
         data: { paymentStatus: "FAILED" },
       });
