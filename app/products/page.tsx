@@ -88,7 +88,7 @@ export default function ProductsPage() {
   }, [products, selectedCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" suppressHydrationWarning>
       <Header />
 
       {/* Search Section */}

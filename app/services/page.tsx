@@ -8,7 +8,7 @@ import { Zap, Clock, Users, CheckCircle } from 'lucide-react';
 
 export default function Services() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" suppressHydrationWarning>
       <Header />
 
       <main className="flex-1">

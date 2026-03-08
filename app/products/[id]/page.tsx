@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" suppressHydrationWarning>
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -100,7 +100,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col" suppressHydrationWarning>
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -121,7 +121,7 @@ export default function ProductDetailPage() {
   const totalPrice = product.price + (installationChecked && product.installationService ? 99.99 : 0);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" suppressHydrationWarning>
       <Header />
 
       <main className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 w-full">

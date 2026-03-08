@@ -96,7 +96,7 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" suppressHydrationWarning>
       <Header />
 
       {/* Hero Section */}
