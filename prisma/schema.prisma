@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String?
+  name      String?
+  role      UserRole   @default(CUSTOMER)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  orders           Order[]
+  serviceRequests  ServiceRequest[]
+  downloads        Download[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model Product {
+  id                  String   @id @default(cuid())
+  title               String
+  description         String   @db.Text
+  category            String
+  price               Float
+  demoUrl             String?
+  features            String[] @default([])
+  images              String[] @default([])
+  fileUrl             String?
+  installationService Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("products")
+}
+
+model Order {
+  id                      String        @id @default(cuid())
+  userId                  String
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId               String?
+  product                 Product?      @relation(fields: [productId], references: [id])
+  type                    OrderType
+  amount                  Float
+  paymentStatus           PaymentStatus @default(PENDING)
+  deliveryStatus          DeliveryStatus @default(PENDING)
+  ssLcommerzTransactionId String?
+  downloadToken           String?       @unique
+  expiresAt               DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  downloads Download[]
+
+  @@map("orders")
+}
+
+enum OrderType {
+  READY_SCRIPT
+  CUSTOM_SERVICE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+}
+
+model ServiceRequest {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessType   String
+  budget         String
+  timeline       String
+  featuresNeeded String   @db.Text
+  status         RequestStatus @default(PENDING)
+  adminNotes     String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("service_requests")
+}
+
+enum RequestStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  downloadedAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  @@map("downloads")
+}
