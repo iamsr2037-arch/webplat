@@ -7,16 +7,35 @@ async function getPrismaClient() {
   
   try {
     const { PrismaClient } = await import("@prisma/client");
+    const { neonConfig } = await import("@neondatabase/serverless");
     const globalForPrisma = global as unknown as { prisma: any };
     
-    prismaClient =
-      globalForPrisma.prisma ||
-      new PrismaClient({
-        log: process.env.NODE_ENV === "production" 
-          ? ["error"] 
-          : ["warn", "error"],
-        errorFormat: "pretty",
-      });
+    // Configure Neon adapter if available
+    let config: any = {
+      log: process.env.NODE_ENV === "production" 
+        ? ["error"] 
+        : ["warn", "error"],
+      errorFormat: "pretty",
+    };
+    
+    // Use Neon adapter if DATABASE_URL points to Neon
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("neon")) {
+      try {
+        const { PrismaNeon } = await import("@prisma/adapter-neon");
+        const { Pool } = await import("@neondatabase/serverless");
+        
+        neonConfig.webSocketConstructor = WebSocket;
+        const connectionString = process.env.DATABASE_URL;
+        const pool = new Pool({ connectionString });
+        const adapter = new PrismaNeon(pool);
+        
+        config.adapter = adapter;
+      } catch (e) {
+        console.warn("[v0] Neon adapter not available, using default adapter");
+      }
+    }
+    
+    prismaClient = globalForPrisma.prisma || new PrismaClient(config);
 
     if (process.env.NODE_ENV !== "production") {
       globalForPrisma.prisma = prismaClient;
@@ -84,14 +103,17 @@ let initializedPrisma: any;
 try {
   const { PrismaClient } = require("@prisma/client");
   const globalForPrisma = global as unknown as { prisma: any };
-  initializedPrisma =
-    globalForPrisma.prisma ||
-    new PrismaClient({
-      log: process.env.NODE_ENV === "production" 
-        ? ["error"] 
-        : ["warn", "error"],
-      errorFormat: "pretty",
-    });
+  
+  let config: any = {
+    log: process.env.NODE_ENV === "production" 
+      ? ["error"] 
+      : ["warn", "error"],
+    errorFormat: "pretty",
+  };
+  
+  // Note: Neon adapter requires async initialization, so for sync fallback we use default
+  initializedPrisma = globalForPrisma.prisma || new PrismaClient(config);
+  
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = initializedPrisma;
   }
