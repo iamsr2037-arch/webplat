@@ -4,9 +4,17 @@ export async function checkDatabaseConnection(): Promise<boolean> {
   try {
     // Try to use the initialized prisma first
     if (prisma) {
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('[v0] Database connection verified');
-      return true;
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        console.log('[v0] Database connection verified');
+        return true;
+      } catch (error: any) {
+        if (error.message?.includes('does not exist')) {
+          console.warn('[v0] Database tables not set up. Run "npm run db:migrate" to initialize.');
+          return false;
+        }
+        throw error;
+      }
     }
     
     // If prisma is null, try async initialization
@@ -16,11 +24,19 @@ export async function checkDatabaseConnection(): Promise<boolean> {
       return false;
     }
     
-    await client.$queryRaw`SELECT 1`;
-    console.log('[v0] Database connection verified');
-    return true;
+    try {
+      await client.$queryRaw`SELECT 1`;
+      console.log('[v0] Database connection verified');
+      return true;
+    } catch (error: any) {
+      if (error.message?.includes('does not exist')) {
+        console.warn('[v0] Database tables not set up. Run "npm run db:migrate" to initialize.');
+        return false;
+      }
+      throw error;
+    }
   } catch (error: any) {
-    console.error('[v0] Database connection failed:', error?.message || error);
+    console.warn('[v0] Database connection check failed:', error?.message || error);
     return false;
   }
 }
@@ -28,6 +44,6 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 export async function requireDatabaseConnection(): Promise<void> {
   const isConnected = await checkDatabaseConnection();
   if (!isConnected) {
-    throw new Error('Database connection failed. Cannot proceed without database.');
+    throw new Error('Database not ready. Please run "npm run db:migrate" to initialize the database.');
   }
 }

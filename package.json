@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --skip-generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "prisma generate && node scripts/run-migrations.js",
-    "db:migrate": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma db push --skip-generate",
     "db:push": "prisma db push"
   },
   "dependencies": {

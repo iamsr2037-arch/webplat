@@ -75,23 +75,11 @@ async function initializeDatabase(client: any) {
   } catch (error: any) {
     // Check if the error is due to missing tables
     if (error.message && error.message.includes("does not exist")) {
-      console.log("[v0] Database tables missing, attempting to apply migrations...");
-      
-      try {
-        // Use prisma migrate deploy in development
-        const { execSync } = require("child_process");
-        execSync("npx prisma migrate deploy 2>/dev/null || npx prisma db push --skip-generate", {
-          stdio: "pipe",
-          cwd: process.cwd(),
-        });
-        console.log("[v0] ✓ Database migrations applied");
-        return true;
-      } catch (migrationError: any) {
-        console.warn("[v0] Could not apply migrations:", migrationError.message);
-        return false;
-      }
+      console.log("[v0] Database tables missing. Run 'npm run db:migrate' to create them.");
+      return false;
     }
-    throw error;
+    console.warn("[v0] Database initialization warning:", error.message);
+    return false;
   }
 }
 
