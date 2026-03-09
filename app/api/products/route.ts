@@ -106,8 +106,8 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get("skip") || "0");
     const take = parseInt(searchParams.get("take") || "12");
 
-    // Try to get prisma client if initial one is null
-    const client = !prisma ? await getPrismaClient() : prisma;
+    // Get prisma client (async initialization required)
+    const client = await getPrismaClient();
     
     if (client) {
       try {
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // TODO: Add admin authentication check
-    const client = !prisma ? await getPrismaClient() : prisma;
+    const client = await getPrismaClient();
     
     if (!client) {
       return NextResponse.json(

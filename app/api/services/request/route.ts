@@ -12,7 +12,7 @@ const serviceRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const client = !prisma ? await getPrismaClient() : prisma;
+    const client = await getPrismaClient();
     
     if (!client) {
       return NextResponse.json(
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // TODO: Add admin authentication check
-    const client = !prisma ? await getPrismaClient() : prisma;
+    const client = await getPrismaClient();
     
     if (!client) {
       return NextResponse.json(

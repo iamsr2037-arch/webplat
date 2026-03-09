@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     console.log("[v0] === REGISTRATION REQUEST ===");
     console.log("[v0] Timestamp:", new Date().toISOString());
     
-    // Try to get or initialize prisma client
-    const client = !prisma ? await getPrismaClient() : prisma;
+    // Get Prisma client (async initialization required)
+    const client = await getPrismaClient();
     
     if (!client) {
       console.error("[v0] Database unavailable - Prisma client not initialized");

@@ -3,7 +3,7 @@ import { prisma, getPrismaClient } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const client = !prisma ? await getPrismaClient() : prisma;
+    const client = await getPrismaClient();
     
     if (!client) {
       return NextResponse.json(

@@ -86,29 +86,7 @@ async function initializeDatabase(client: any) {
 // Export both sync and async versions for compatibility
 export { getPrismaClient };
 
-// Try to initialize synchronously for backward compatibility
-let initializedPrisma: any;
-try {
-  const { PrismaClient } = require("@prisma/client");
-  const globalForPrisma = global as unknown as { prisma: any };
-  
-  let config: any = {
-    log: process.env.NODE_ENV === "production" 
-      ? ["error"] 
-      : ["warn", "error"],
-    errorFormat: "pretty",
-  };
-  
-  // Note: Neon adapter requires async initialization, so for sync fallback we use default
-  initializedPrisma = globalForPrisma.prisma || new PrismaClient(config);
-  
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = initializedPrisma;
-  }
-} catch (error) {
-  // Prisma not yet generated, will use async version
-  console.warn("[v0] Prisma client not yet available - using fallback mode");
-  initializedPrisma = null;
-}
-
-export const prisma = initializedPrisma;
+// Note: For Prisma 7, we rely on async initialization via getPrismaClient()
+// The synchronous initialization is too complex with the Neon adapter
+// This export will be null until getPrismaClient() is called
+export const prisma = null;
