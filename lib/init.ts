@@ -2,7 +2,7 @@
 // Validates environment, database connection, and logs configuration
 
 import { validateEnvironment, logEnvironmentSummary } from "./validate-env";
-import { prisma } from "./db";
+import { getPrismaClient } from "./db";
 
 let initialized = false;
 
@@ -29,11 +29,17 @@ export async function initializeApp(): Promise<boolean> {
   // Test database connection
   try {
     console.log("[v0] Testing database connection...");
-    await prisma.$queryRaw`SELECT 1`;
+    const client = await getPrismaClient();
+    if (!client) {
+      console.warn("[v0] ⚠ Database client not available - using fallback mode");
+      initialized = true;
+      return true;
+    }
+    await client.$queryRaw`SELECT 1`;
     console.log("[v0] ✓ Database connection successful");
-  } catch (error) {
-    console.error("[v0] ✗ Database connection failed:", error);
-    return false;
+  } catch (error: any) {
+    // Log warning but don't fail initialization - app can run with fallback
+    console.warn("[v0] ⚠ Database connection check failed:", error?.message);
   }
 
   initialized = true;

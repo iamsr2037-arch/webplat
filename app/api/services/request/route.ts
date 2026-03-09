@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, getPrismaClient } from '@/lib/db';
 import { z } from 'zod';
 
 const serviceRequestSchema = z.object({
@@ -12,6 +12,15 @@ const serviceRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
 
     const validation = serviceRequestSchema.safeParse(body);
@@ -25,7 +34,7 @@ export async function POST(request: NextRequest) {
     const { userId, businessType, budget, timeline, featuresNeeded } = validation.data;
 
     // Verify user exists
-    const user = await prisma.user.findUnique({
+    const user = await client.user.findUnique({
       where: { id: userId },
     });
 
@@ -37,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create service request
-    const serviceRequest = await prisma.serviceRequest.create({
+    const serviceRequest = await client.serviceRequest.create({
       data: {
         userId,
         businessType,
@@ -69,8 +78,16 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // TODO: Add admin authentication check
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
 
-    const requests = await prisma.serviceRequest.findMany({
+    const requests = await client.serviceRequest.findMany({
       include: {
         user: {
           select: { id: true, email: true, name: true },

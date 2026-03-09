@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, getPrismaClient } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { requireDatabaseConnection } from "@/lib/db-health";
 import { z } from "zod";
@@ -15,6 +15,17 @@ export async function POST(request: NextRequest) {
     console.log("[v0] === REGISTRATION REQUEST ===");
     console.log("[v0] Timestamp:", new Date().toISOString());
     
+    // Get Prisma client (async initialization required)
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      console.error("[v0] Database unavailable - Prisma client not initialized");
+      return NextResponse.json(
+        { error: "Registration service is temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
     // Require database connection - fail fast if DB is down
     await requireDatabaseConnection();
     console.log("[v0] Database connection verified");
@@ -38,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Check if email already exists (duplicate email prevention)
     console.log("[v0] Checking for duplicate email:", email);
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await client.user.findUnique({
       where: { email },
     });
 
@@ -58,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Create user in database
     console.log("[v0] Creating user in database");
-    const user = await prisma.user.create({
+    const user = await client.user.create({
       data: {
         email,
         password: hashedPassword,

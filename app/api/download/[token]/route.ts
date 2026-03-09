@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getPrismaClient } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -8,6 +8,15 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 }
+      );
+    }
+
     const { token } = await params;
 
     if (!token) {
@@ -18,7 +27,7 @@ export async function GET(
     }
 
     // Find order by download token
-    const order = await prisma.order.findUnique({
+    const order = await client.order.findUnique({
       where: { downloadToken: token },
       include: { product: true, user: true },
     });
@@ -70,7 +79,7 @@ export async function GET(
     }
 
     // Log download
-    await prisma.download.create({
+    await client.download.create({
       data: {
         orderId: order.id,
         userId: order.userId,

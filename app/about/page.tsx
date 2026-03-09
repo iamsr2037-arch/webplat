@@ -8,7 +8,7 @@ import { Code2, Users, Zap, Award, Target, Heart } from 'lucide-react';
 
 export default function About() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" suppressHydrationWarning>
       <Header />
 
       <main className="flex-1">

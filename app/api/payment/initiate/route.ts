@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getPrismaClient } from "@/lib/db";
 import {
   generateTransactionId,
   generateDownloadToken,
@@ -16,6 +16,15 @@ const paymentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
 
     const validation = paymentSchema.safeParse(body);
@@ -29,7 +38,7 @@ export async function POST(request: NextRequest) {
     const { productId, userId, installationService } = validation.data;
 
     // Verify product exists
-    const product = await prisma.product.findUnique({
+    const product = await client.product.findUnique({
       where: { id: productId },
     });
 
@@ -41,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user exists
-    const user = await prisma.user.findUnique({
+    const user = await client.user.findUnique({
       where: { id: userId },
     });
 
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
     const downloadToken = generateDownloadToken();
 
     // Create order
-    const order = await prisma.order.create({
+    const order = await client.order.create({
       data: {
         userId,
         productId,
@@ -94,7 +103,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Store transaction ID in order for verification
-    await prisma.order.update({
+    await client.order.update({
       where: { id: order.id },
       data: { ssLcommerzTransactionId: transactionId },
     });
