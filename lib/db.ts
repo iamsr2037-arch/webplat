@@ -7,10 +7,9 @@ async function getPrismaClient() {
   
   try {
     const { PrismaClient } = await import("@prisma/client");
-    const { neonConfig } = await import("@neondatabase/serverless");
     const globalForPrisma = global as unknown as { prisma: any };
     
-    // Configure Neon adapter if available
+    // Configure base client config
     let config: any = {
       log: process.env.NODE_ENV === "production" 
         ? ["error"] 
@@ -21,17 +20,20 @@ async function getPrismaClient() {
     // Use Neon adapter if DATABASE_URL points to Neon
     if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("neon")) {
       try {
+        const { neonConfig } = await import("@neondatabase/serverless");
         const { PrismaNeon } = await import("@prisma/adapter-neon");
         const { Pool } = await import("@neondatabase/serverless");
+        const WebSocketImpl = require("ws");
         
-        neonConfig.webSocketConstructor = WebSocket;
+        neonConfig.webSocketConstructor = WebSocketImpl;
         const connectionString = process.env.DATABASE_URL;
         const pool = new Pool({ connectionString });
         const adapter = new PrismaNeon(pool);
         
         config.adapter = adapter;
-      } catch (e) {
-        console.warn("[v0] Neon adapter not available, using default adapter");
+      } catch (e: any) {
+        console.warn("[v0] Neon adapter not available:", e.message);
+        // Fall back to default - DATABASE_URL will be used by Prisma
       }
     }
     
