@@ -1,23 +1,7 @@
-import { prisma, getPrismaClient } from './db';
+import { getPrismaClient } from './db';
 
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    // Try to use the initialized prisma first
-    if (prisma) {
-      try {
-        await prisma.$queryRaw`SELECT 1`;
-        console.log('[v0] Database connection verified');
-        return true;
-      } catch (error: any) {
-        if (error.message?.includes('does not exist')) {
-          console.warn('[v0] Database tables not set up. Run "npm run db:migrate" to initialize.');
-          return false;
-        }
-        throw error;
-      }
-    }
-    
-    // If prisma is null, try async initialization
     const client = await getPrismaClient();
     if (!client) {
       console.warn('[v0] Prisma client not available');

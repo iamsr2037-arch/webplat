@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getPrismaClient } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -7,8 +7,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const client = await getPrismaClient();
+    
+    if (!client) {
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
 
-    const product = await prisma.product.findUnique({
+    const product = await client.product.findUnique({
       where: { id },
     });
 
